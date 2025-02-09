@@ -180,6 +180,7 @@ export default {
 
         localStorage.setItem("accessToken", response.data.access);
         localStorage.setItem("refreshToken", response.data.refresh);
+        localStorage.setItem("expireTime",response.data.access_expires);
         this.signedIn = true;
       } catch (error) {
         console.error("Error during sign in:", error);

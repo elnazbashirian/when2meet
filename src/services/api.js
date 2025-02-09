@@ -13,8 +13,13 @@ const api = axios.create({
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('accessToken');
-        if (token) {
+        const expireDate = new Date(localStorage.getItem("expireTime"));
+        const now = new Date();
+        if (token && expireDate>now) {
             config.headers['Authorization'] = `Bearer ${token}`;
+        }
+        else {
+            localStorage.removeItem("accessToken");
         }
         return config;
     },
