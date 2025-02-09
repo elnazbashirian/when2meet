@@ -149,6 +149,9 @@ export default {
       unavailableUsers: [],
       tempUser: JSON.parse(localStorage.getItem("tempUser")) || [],
       tempUser2: JSON.parse(localStorage.getItem("tempUser2")) || [],
+      all_event_availabilities: [],
+      attendee_availabilities: [],
+      attendees_with_availability_count: 0,
 
     };
   },
@@ -173,10 +176,8 @@ export default {
       };
 
       try {
-        const response =  await api.post(`/event/${this.$route.query.id}/signin/`, data);
+        const response = await api.post(`/event/${this.$route.query.id}/signin/`, data);
 
-        this.tempUser.push(this.userName.trim());
-        localStorage.setItem("tempUser", JSON.stringify(this.tempUser));
         localStorage.setItem("accessToken", response.data.access);
         localStorage.setItem("refreshToken", response.data.refresh);
         this.signedIn = true;
@@ -192,32 +193,38 @@ export default {
       if (!minute) {
         minute = '00';
       }
-
       if (period === 'PM' && hour !== '12') {
         hour = (parseInt(hour) + 12).toString();
       } else if (period === 'AM' && hour === '12') {
         hour = '00';
       }
-      if(hour.length>1){
+      if (hour.length > 1) {
         return `${date}T${hour}:${minute}:00`;
-      }else {
+      } else {
         return `${date}T0${hour}:${minute}:00`;
       }
-    }
-    ,toggleAvailability(day, hour) {
-      const selectedDate = new Date(this.convertTo24HourFormat(`${day} ${hour}`)); // روز و ساعت را ترکیب می‌کنیم
+    },
+
+    toggleAvailability(day, hour) {
+      const key = `${day} ${hour}`;
+      const selectedDate = new Date(this.convertTo24HourFormat(key));
       const startTime = new Date(selectedDate);
       const endTime = new Date(selectedDate);
-
       endTime.setHours(startTime.getHours() + 1);
 
-        const startIso = startTime.toISOString();
-        const endIso = endTime.toISOString();
-        console.log(startTime);
-        console.log(endTime);
-        this.sendAvailability(startIso, endIso);
+      const startIso = startTime.toISOString();
+      const endIso = endTime.toISOString();
 
+      // بررسی اینکه آیا سلول در حال حاضر انتخاب شده است یا نه
+      const isCurrentlySelected = this.attendee_availabilities.some(temp =>
+          new Date(temp.start_time).getTime() === new Date(startIso).getTime()
+      );
 
+      if (isCurrentlySelected) {
+        this.removeAvailability(startIso, endIso); // اگر انتخاب شده بود، حذف کن
+      } else {
+        this.sendAvailability(startIso, endIso); // اگر انتخاب نشده بود، اضافه کن
+      }
     },
 
     sendAvailability(startIso, endIso) {
@@ -225,62 +232,93 @@ export default {
         start_time: startIso,
         end_time: endIso
       };
-      console.log(data)
+
       api.post(`/event/${this.$route.query.id}/availability/`, data)
           .then(response => {
-            console.log('Availability updated successfully', response);
+            console.log('زمان در دسترس اضافه شد:', response);
+            this.fetchEventData(); // به‌روزرسانی داده‌ها
           })
           .catch(error => {
-            console.error('Error updating availability', error);
+            console.error('خطا در افزودن زمان:', error);
+          });
+    },
+
+    removeAvailability(startIso, endIso) {
+      api.delete(`/event/${this.$route.query.id}/availability/`, {
+        data: {
+          start_time: startIso,
+          end_time: endIso
+        }
+      })
+          .then(response => {
+            console.log('زمان حذف شد:', response);
+            this.fetchEventData(); // به‌روزرسانی داده‌ها
+          })
+          .catch(error => {
+            console.error('خطا در حذف زمان:', error);
           });
     },
 
 
-    getUserCellClass(day, hour) {
-      const key = `${day}-${hour}`;
-      return this.availability[key] && this.availability[key].includes(this.userName) ? "selected" : "";
-    },
-    getGroupCellClass(day, hour) {
-      const key = `${day}-${hour}`;
-      const users = this.availability[key] || [];
-      const totalUsers = this.tempUser2.length;
-      if (totalUsers === 1) {
-        if (users.length === 1)
-          return "green"; // فقط یک کاربر انتخاب کرده است (سبز)
-      } else if (totalUsers === 2) {
+    //
+    // getUserCellClass(day, hour) {
+    //   const key = `${day} ${hour}`;
+    //   return this.attendee_availabilities.filter(temp =>
+    //       new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
+    //   ).length === 1 ? "selected" : "";
+    //
+    // },
 
-        if (users.length === 1) return "yellow"; // یکی انتخاب کرده است (زرد)
-        else if (users.length === 2) return "green";
-      } else if (totalUsers >= 3) {
-        if (users.length === totalUsers) return "green"; // همه انتخاب کرده‌اند (سبز)
-        if (users.length>=2 && users.length<=totalUsers-1) return "red"; // دو نفر انتخاب کرده‌اند و یک نفر نه (قرمز)
-        if (users.length === 1) return "yellow"; // فقط یک نفر انتخاب کرده است (زرد)
+    getUserCellClass(day, hour) {
+      const key = `${day} ${hour}`;
+      return this.attendee_availabilities.some(temp =>
+          new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
+      ) ? "selected" : "";
+    },
+
+    getGroupCellClass(day, hour) {
+      const key = `${day} ${hour}`;
+      console.log(new Date(this.convertTo24HourFormat(key)));
+      const totalUserPickThisTime = this.all_event_availabilities.filter(temp =>
+          new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
+      );
+      const totallUserTimeSelectGroup = this.attendees_with_availability_count;
+
+      if (totallUserTimeSelectGroup === 1) {
+        if (totalUserPickThisTime.length === 1)
+          return "green"; // فقط یک کاربر انتخاب کرده است (سبز)
+      } else if (totallUserTimeSelectGroup === 2) {
+
+        if (totalUserPickThisTime.length === 1) return "yellow"; // یکی انتخاب کرده است (زرد)
+        else if (totalUserPickThisTime.length === 2) return "green";
+      } else if (totallUserTimeSelectGroup >= 3) {
+        if (totalUserPickThisTime.length === totallUserTimeSelectGroup) return "green"; // همه انتخاب کرده‌اند (سبز)
+        if (totalUserPickThisTime.length >= 2 && totalUserPickThisTime.length <= totallUserTimeSelectGroup - 1) return "red"; // دو نفر انتخاب کرده‌اند و یک نفر نه (قرمز)
+        if (totalUserPickThisTime.length === 1) return "yellow"; // فقط یک نفر انتخاب کرده است (زرد)
       }
       return "";
     },
     showUserList(day, hour) {
       this.showUsers = true;
-      const key = `${day}-${hour}`;
+      const key = `${day} ${hour}`;
+      const allUserByName = [...new Set(this.all_event_availabilities.map(user => user.attendee))]
 
-      // بررسی اینکه ساعت انتخاب شده یا نه
-      const usersForHour = this.availability[key] || [];
+      const usersForHour = [...new Set(this.all_event_availabilities.filter(temp =>
+          new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
+      ).map(user => user.attendee))]
+
 
       if (usersForHour.length > 0) {
-        this.availableUsers = usersForHour; // کاربران انتخاب‌شده
-        this.unavailableUsers = Object.keys(this.availability).reduce((acc, otherKey) => {
-          if (otherKey !== key) {
-            // برای هر ساعت دیگری که انتخاب نشده است، اضافه می‌کنیم
-            acc.push(...(this.availability[otherKey] || []));
-          }
-          return acc;
-        }, []).filter(user => !usersForHour.includes(user)); // کاربران غیر انتخاب‌شده
+        this.availableUsers = usersForHour;
+        // کاربران انتخاب‌شده
+        this.unavailableUsers = [...new Set(allUserByName.filter(temp =>
+            !usersForHour.some(picked => picked === temp)
+        ))];
+
       } else {
         // اگر ساعت انتخاب نشده باشد، لیست کاربران غیر موجود به‌طور پیش‌فرض می‌آید
         this.availableUsers = [];
-        this.unavailableUsers = Object.keys(this.availability).reduce((acc, otherKey) => {
-          acc.push(...(this.availability[otherKey] || []));
-          return acc;
-        }, []);
+        this.unavailableUsers =allUserByName;
       }
     },
 
@@ -296,6 +334,9 @@ export default {
         this.startTime = event.start_time;
         this.endTime = event.end_time;
         this.selectedDays = event.dates.map(d => d.date);
+        this.all_event_availabilities = response.data.all_event_availabilities;
+        this.attendee_availabilities = response.data.attendee_availabilities;
+        this.attendees_with_availability_count = response.data.attendees_with_availability_count;
 
         this.generateHours();
       } catch (error) {
@@ -313,7 +354,7 @@ export default {
       }
     },
   },
-  created() {
+  mounted() {
     this.fetchEventData();
   },
 };
@@ -486,7 +527,7 @@ th {
   color: white;
 }
 
-.hour-cell.yellow{
+.hour-cell.yellow {
   background: rgba(157, 155, 225, 0.82);
 }
 
