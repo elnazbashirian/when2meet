@@ -25,7 +25,7 @@
         <button @click="signIn">Sign In</button>
         <p>Name/Password are only for this event.</p>
       </div>
-      <div class="availability-tables table group-table" @mouseleave="hideUserList">
+      <div class="availability-tables table group-table">
         <h2>Group Availability</h2>
         <table>
           <thead>
@@ -38,7 +38,7 @@
             <td v-for="day in selectedDays" :key="day"
                 :class="getGroupCellClass(day, hour)"
                 class="hour-cell"
-                @mouseover="showUserList(day, hour)"
+                @click="toggleUserList(day, hour)"
             >
               {{ hour }}
             </td>
@@ -73,7 +73,7 @@
           </table>
         </div>
 
-        <div class="table group-table" @mouseleave="hideUserList">
+        <div class="table group-table">
           <h2>Group Availability</h2>
           <table>
             <thead>
@@ -86,7 +86,7 @@
               <td v-for="day in selectedDays" :key="day"
                   :class="getGroupCellClass(day, hour)"
                   class="hour-cell"
-                  @mouseover="showUserList(day, hour)"
+                  @click="toggleUserList(day, hour)"
               >
                 {{ hour }}
               </td>
@@ -145,6 +145,7 @@ export default {
       hours: [],
       availability: JSON.parse(localStorage.getItem("availability")) || {},
       showUsers: false,
+      selectedCell: null,
       availableUsers: [],
       unavailableUsers: [],
       tempUser: JSON.parse(localStorage.getItem("tempUser")) || [],
@@ -299,27 +300,35 @@ export default {
       }
       return "";
     },
-    showUserList(day, hour) {
-      this.showUsers = true;
+    toggleUserList(day, hour) {
       const key = `${day} ${hour}`;
+      if (this.selectedCell === key) {
+        // If the same cell is clicked again, hide the user list
+        this.showUsers = !this.showUsers;
+      } else {
+        // If a different cell is clicked, show the user list and update selected cell
+        this.selectedCell = key;
+        this.showUserList(day, hour);
+      }
+    },
+
+    showUserList(day, hour) {
+      const key = `${day} ${hour}`;
+      this.showUsers = true;
       const allUserByName = [...new Set(this.all_event_availabilities.map(user => user.attendee))]
 
       const usersForHour = [...new Set(this.all_event_availabilities.filter(temp =>
           new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
       ).map(user => user.attendee))]
 
-
       if (usersForHour.length > 0) {
         this.availableUsers = usersForHour;
-        // کاربران انتخاب‌شده
         this.unavailableUsers = [...new Set(allUserByName.filter(temp =>
             !usersForHour.some(picked => picked === temp)
         ))];
-
       } else {
-        // اگر ساعت انتخاب نشده باشد، لیست کاربران غیر موجود به‌طور پیش‌فرض می‌آید
         this.availableUsers = [];
-        this.unavailableUsers =allUserByName;
+        this.unavailableUsers = allUserByName;
       }
     },
 
