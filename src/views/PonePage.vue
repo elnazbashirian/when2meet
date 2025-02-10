@@ -1,31 +1,31 @@
 <template>
-  <div class="main-container">
-    <h1>Plan a New Event</h1>
+  <div class="main-container" dir="rtl">
+    <h1>برنامه‌ریزی برای رویداد جدید</h1>
 
     <!-- New Event Name -->
     <div class="event-name">
-      <h2>pick a name for your event</h2>
-      <input type="text" placeholder="New Event Name" v-model="eventName" />
+      <h2>یک نام برای رویداد خود انتخاب کنید</h2>
+      <input type="text" placeholder="نام رویداد جدید" v-model="eventName" />
     </div>
 
     <!-- What dates might work? -->
     <div class="date-selection">
-      <h2>What dates might work?</h2>
-      <p>Click and drag dates to choose possibilities.</p>
+      <h2>کدام تاریخ‌ها برای شما مناسب است؟</h2>
+      <h3>برای انتخاب، روی تاریخ مد نظر کلیک کنید</h3>
       <label>
-        Survey using:
+        <h3>انتخاب تاریخ با استفاده از:</h3>
         <select v-model="surveyType">
-          <option value="specific">Specific Dates</option>
-          <option value="days">Days of the Week</option>
+          <option value="specific">تاریخ‌های خاص</option>
+          <option value="days">روزهای هفته</option>
         </select>
       </label>
 
       <!-- Calendar for Specific Dates -->
       <div v-if="surveyType === 'specific'" class="calendar-container">
         <div class="calendar-header">
-          <button @click="prevMonth">&#8592;</button>
-          <span>{{ monthNames[currentMonth] }} {{ currentYear }}</span>
           <button @click="nextMonth">&#8594;</button>
+          <span>{{ monthNames[currentMonth] }} {{ currentYear }}</span>
+          <button @click="prevMonth">&#8592;</button>
         </div>
         <div class="calendar">
           <div class="day-name" v-for="day in dayNames" :key="day">{{ day }}</div>
@@ -57,10 +57,10 @@
 
     <!-- Time and Timezone Selection -->
     <div class="time-zone-selection">
-      <h2>What times might work?</h2>
+      <h2>چه ساعاتی برای شما مناسب است؟</h2>
       <div class="time-zone-box">
         <label>
-          No earlier than:
+          <h3>زودتر از این ساعت نباشد:</h3>
           <select v-model="timeStart">
             <option v-for="time in noEarlierThan" :key="time" :value="time">
               {{ time }}
@@ -68,7 +68,7 @@
           </select>
         </label>
         <label>
-          No later than:
+          <h3>دیرتر از این ساعت نباشد:</h3>
           <select v-model="timeEnd">
             <option v-for="time in noLaterThan" :key="time" :value="time">
               {{ time }}
@@ -77,7 +77,7 @@
         </label>
 
         <label>
-          Time Zone:
+          <h3>منطقه زمانی:</h3>
           <select v-model="timeZone">
             <option v-for="zone in timeZones" :key="zone" :value="zone">
               {{ zone }}
@@ -89,36 +89,36 @@
 
     <!-- Ready Button -->
     <div class="create-event">
-      <button @click="createEvent">Create Event</button>
+      <button @click="createEvent">ایجاد رویداد</button>
     </div>
   </div>
 </template>
 
 <script>
 import api from '@/services/api'; // Assuming api is set up for axios
-
+import moment from "jalali-moment";
 export default {
   data() {
-    const today = new Date();
+    const today = moment().locale("fa");
     return {
       eventName: "",
       surveyType: "specific", // Default to Specific Dates
-      currentMonth: today.getMonth(),
-      currentYear: today.getFullYear(),
-      daysInMonth: this.getDaysInMonth(today.getFullYear(), today.getMonth()),
-      dayNames: ["S", "M", "T", "W", "T", "F", "S"],
+      currentMonth: today.jMonth(),
+      currentYear: today.jYear(),
+      daysInMonth: this.getDaysInMonth(today.jYear(), today.jMonth()),
+      dayNames: ["شنبه", "یکشنبه", "دوشنبه", "سه شنبه", "چهارشنبه", "پنجشنبه", "جمعه"],
       monthNames: [
-        "January", "February", "March", "April", "May", "June", "July",
-        "August", "September", "October", "November", "December",
+        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
       ],
       daysOfWeek: [
-        { name: "Sunday", selected: false },
-        { name: "Monday", selected: false },
-        { name: "Tuesday", selected: false },
-        { name: "Wednesday", selected: false },
-        { name: "Thursday", selected: false },
-        { name: "Friday", selected: false },
-        { name: "Saturday", selected: false },
+        { name: "شنبه", selected: false },
+        { name: "یکشنبه", selected: false },
+        { name: "دوشنبه", selected: false },
+        { name: "سه‌شنبه", selected: false },
+        { name: "چهارشنبه", selected: false },
+        { name: "پنج‌شنبه", selected: false },
+        { name: "جمعه", selected: false }
       ],
       timeStart: "12:00 AM",
       timeEnd: "11:00 PM",
@@ -145,25 +145,27 @@ export default {
       }
     },
     getDaysInMonth(year, month) {
-      const date = new Date(year, month, 1);
       const days = [];
-      while (date.getMonth() === month) {
-        days.push({
-          day: date.getDate(),
-          currentMonth: true,
-          selected: false,
-        });
-        date.setDate(date.getDate() + 1);
+      const firstDayOfMonth = moment(`${year}/${month + 1}/1`, "jYYYY/jM/jD").jDay(); // اصلاح شده
+      const daysCount = moment.jDaysInMonth(year, month);
+
+      for (let i = 0; i < firstDayOfMonth; i++) {
+        days.push({ day: "", currentMonth: false });
       }
 
-      // Add padding for the first week
-      const firstDay = new Date(year, month, 1).getDay();
-      for (let i = 0; i < firstDay; i++) {
-        days.unshift({ day: "", currentMonth: false, selected: false });
+      for (let i = 1; i <= daysCount; i++) {
+        days.push({
+          day: i,
+          currentMonth: true,
+          selected: false
+        });
       }
 
       return days;
     },
+
+
+
     toggleDateSelection(date) {
       if (date.currentMonth) {
         date.selected = !date.selected;
@@ -201,48 +203,73 @@ export default {
         hour += 12;
       }
 
-      return `${hour < 10 ? "0" + hour : hour}:${minute}:00`; // به فرمت HH:mm:ss
+      return `${hour < 10 ? "0" + hour : hour}:${minute}:00`;
     },
 
     async createEvent() {
-      const selectedCalendarDays = this.daysInMonth.filter(date => date.selected);
-      const selectedWeekDays = this.daysOfWeek.filter(day => day.selected);
+      const selectedDates = this.daysInMonth
+          .filter(date => date.selected)
+          .map(day => ({
+            date: `1403-${(this.currentMonth + 1).toString().padStart(2, '0')}-${day.day.toString().padStart(2, '0')}`
+          }));
 
-      const selectedDays = [
-        ...selectedCalendarDays.map(day => ({
-          date: `2025-${(this.currentMonth + 1).toString().padStart(2, '0')}-${day.day.toString().padStart(2, '0')}`
-        })),
-        ...selectedWeekDays.map(day => ({ date: day.name })),
-      ];
+      const selectedDaysOfWeek = this.daysOfWeek
+          .filter(day => day.selected)
+          .map(day => ({ day: day.name }));
 
       const eventDetails = {
         name: this.eventName,
         timezone: this.timeZone,
         start_time: this.convertTo24HourFormat(this.timeStart),
         end_time: this.convertTo24HourFormat(this.timeEnd),
-        dates: selectedDays,
+        event_type: this.surveyType === "days" ? "Days of Week" : "Specific Dates",
       };
 
-      if (selectedDays.length === 0 || !this.eventName) {
-        alert('Please select at least one day and provide an event name.');
+      if (this.surveyType === "specific") {
+        eventDetails.dates = selectedDates;
+      } else if (this.surveyType === "days") {
+        eventDetails.days_of_week = selectedDaysOfWeek;
+      }
+
+      if ((!selectedDates.length && this.surveyType === "specific") ||
+          (!selectedDaysOfWeek.length && this.surveyType === "days") ||
+          !this.eventName) {
+        this.$toast.open({
+          message: 'لطفاً یک نام برای رویداد وارد کنید و حداقل یک روز یا تاریخ را انتخاب کنید.',
+          type: "error",
+          position: "bottom-left",
+          duration: 5000,
+          dismissible: true,
+        });
         return;
       }
 
       try {
         const response = await api.post('/event/create/', eventDetails);
         console.log('Event Created:', response.data);
-
+        this.$toast.open({
+          message: 'رویدادی جدید با موفقیت ایجاد شد',
+          type: "success",
+          position: "bottom-left",
+          duration: 5000,
+          dismissible: true,
+        });
         const eventLink = response.data.event_link;
         const eventUUID = eventLink.split('/').pop();
 
-
         this.$router.push({ path: '/event', query: { id: eventUUID } });
-
       } catch (error) {
         console.error('Failed to create event:', error);
-        alert('Error creating event. Please try again.');
+        this.$toast.open({
+          message: 'خطا در ایجاد رویداد. لطفاً دوباره تلاش کنید.',
+          type: "error",
+          position: "bottom-left",
+          duration: 5000,
+          dismissible: true,
+        });
       }
     }
+
 
 
   },

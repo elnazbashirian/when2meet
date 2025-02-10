@@ -1,12 +1,12 @@
 <template>
-  <div class="availability-page">
+  <div class="availability-page" dir="rtl">
     <h1>{{ eventName }}</h1>
     <h3>
-      To invite people to this event, share this link:
+      برای دعوت افراد به این رویداد، این لینک را به اشتراک بگذارید:
       <a :href="eventLink" target="_blank">{{ eventLink }}</a>
     </h3>
     <div class="time-zone-box">
-      <label>Your Time Zone:</label>
+      <label>منطقه زمانی شما:</label>
       <select v-model="timeZone">
         <option v-for="zone in timeZones" :key="zone" :value="zone">
           {{ zone }}
@@ -17,16 +17,16 @@
     <!-- Sign In Section -->
     <div v-if="!signedIn" class="sign-in">
       <div class="sign-in-form">
-        <h3>Sign In</h3>
-        <label>Your Name:</label>
-        <input v-model="userName" placeholder="Enter your name" type="text"/>
-        <label>Your password (optional):</label>
-        <input v-model="password" placeholder="Enter your password" type="password"/>
-        <button @click="signIn">Sign In</button>
-        <p>Name/Password are only for this event.</p>
+        <h3>ورود</h3>
+        <label>نام شما:</label>
+        <input v-model="userName" placeholder="نام خود را وارد کنید" type="text"/>
+        <label>رمز عبور شما (اختیاری):</label>
+        <input v-model="password" placeholder="رمز عبور خود را وارد کنید" type="password"/>
+        <button @click="signIn">ورود</button>
+        <p>نام/رمز عبور فقط برای این رویداد استفاده می‌شود</p>
       </div>
       <div class="availability-tables table group-table">
-        <h2>Group Availability</h2>
+        <h2>زمان های دسترسی گروه</h2>
         <table>
           <thead>
           <tr>
@@ -50,31 +50,12 @@
 
     <!-- User Availability -->
     <div v-else>
-      <h1>Availability Selection</h1>
+      <h1>جداول دسترسی</h1>
       <div class="availability-tables direction-tables">
-        <div class="table user-table">
-          <h2>{{ userName }}'s Availability</h2>
-          <table>
-            <thead>
-            <tr>
-              <th v-for="day in selectedDays" :key="day">{{ day }}</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr v-for="hour in filteredHours" :key="hour">
-              <td v-for="day in selectedDays" :key="day"
-                  :class="getUserCellClass(day, hour)"
-                  class="hour-cell"
-                  @click="toggleAvailability(day, hour)">
-                {{ hour }}
-              </td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
+
 
         <div class="table group-table">
-          <h2>Group Availability</h2>
+          <h2>زمان های دسترسی گروه</h2>
           <table>
             <thead>
             <tr>
@@ -94,17 +75,38 @@
             </tbody>
           </table>
         </div>
+
+        <div class="table user-table">
+          <h2>زمان دسترسی کاربر {{ userName }}</h2>
+          <table>
+            <thead>
+            <tr>
+              <th v-for="day in selectedDays" :key="day">{{ day }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="hour in filteredHours" :key="hour">
+              <td v-for="day in selectedDays" :key="day"
+                  :class="getUserCellClass(day, hour)"
+                  class="hour-cell"
+                  @click="toggleAvailability(day, hour)">
+                {{ hour }}
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <!-- Available / Unavailable Users Table -->
     <div v-if="showUsers" class="user-list">
-      <h3>Selected Users</h3>
+      <h3>کاربران انتخاب‌شده</h3>
       <table>
         <thead>
         <tr>
-          <th>Available</th>
-          <th>Unavailable</th>
+          <th>در دسترس</th>
+          <th>غیر در دسترس</th>
         </tr>
         </thead>
         <tbody>
@@ -153,6 +155,7 @@ export default {
       all_event_availabilities: [],
       attendee_availabilities: [],
       attendees_with_availability_count: 0,
+      eventType: 0,
 
     };
   },
@@ -181,7 +184,7 @@ export default {
 
         localStorage.setItem("accessToken", response.data.access);
         localStorage.setItem("refreshToken", response.data.refresh);
-        localStorage.setItem("expireTime",response.data.access_expires);
+        localStorage.setItem("expireTime", response.data.access_expires);
         this.signedIn = true;
       } catch (error) {
         console.error("Error during sign in:", error);
@@ -207,49 +210,59 @@ export default {
       }
     },
 
+
     toggleAvailability(day, hour) {
-      const key = `${day} ${hour}`;
-      const selectedDate = new Date(this.convertTo24HourFormat(key));
-      const startTime = new Date(selectedDate);
-      const endTime = new Date(selectedDate);
-      endTime.setHours(startTime.getHours() + 1);
+      if (this.eventType === 0) {
+        const key = `${day} ${hour}`;
+        console.log(key)
+        const selectedDate = new Date(this.convertTo24HourFormat(key));
+        const startTime = new Date(selectedDate);
+        const endTime = new Date(selectedDate);
+        endTime.setHours(startTime.getHours() + 1);
+        const startIso = startTime.toISOString();
+        const endIso = endTime.toISOString();
 
-      const startIso = startTime.toISOString();
-      const endIso = endTime.toISOString();
+        // بررسی اینکه آیا سلول در حال حاضر انتخاب شده است یا نه
+        const isCurrentlySelected = this.attendee_availabilities.some(temp =>
+            new Date(temp.start_time).getTime() === new Date(startIso).getTime()
+        );
 
-      // بررسی اینکه آیا سلول در حال حاضر انتخاب شده است یا نه
-      const isCurrentlySelected = this.attendee_availabilities.some(temp =>
-          new Date(temp.start_time).getTime() === new Date(startIso).getTime()
-      );
+        if (isCurrentlySelected) {
+          this.removeAvailabilityDate(startIso, endIso); // اگر انتخاب شده بود، حذف کن
+        } else {
+          this.sendAvailabilityDate(startIso, endIso); // اگر انتخاب نشده بود، اضافه کن
+        }
+      } else if (this.eventType === 1) {
+        const isCurrentlySelected = this.attendee_availabilities.some(temp =>
+            temp.start_time === hour && temp.day === day
+        );
 
-      if (isCurrentlySelected) {
-        this.removeAvailability(startIso, endIso); // اگر انتخاب شده بود، حذف کن
-      } else {
-        this.sendAvailability(startIso, endIso); // اگر انتخاب نشده بود، اضافه کن
+        if (isCurrentlySelected) {
+          this.removeAvailabilityDay(day, hour); // اگر انتخاب شده بود، حذف کن
+        } else {
+          this.sendAvailabilityDay(day, hour); // اگر انتخاب نشده بود، اضافه کن
+        }
       }
+
     },
-
-    sendAvailability(startIso, endIso) {
-      const data = {
-        start_time: startIso,
-        end_time: endIso
-      };
-
-      api.post(`/event/${this.$route.query.id}/availability/`, data)
+    sendAvailabilityDay(day, hour) {
+      api.post(`/event/${this.$route.query.id}/dayofweekavailability/`, {
+        day: day,
+        start_time: hour
+      })
           .then(response => {
             console.log('زمان در دسترس اضافه شد:', response);
-            this.fetchEventData(); // به‌روزرسانی داده‌ها
+            this.fetchEventData();
           })
           .catch(error => {
             console.error('خطا در افزودن زمان:', error);
           });
     },
-
-    removeAvailability(startIso, endIso) {
+    removeAvailabilityDay(day, hour) {
       api.delete(`/event/${this.$route.query.id}/availability/`, {
         data: {
-          start_time: startIso,
-          end_time: endIso
+          day: day,
+          start_time: hour
         }
       })
           .then(response => {
@@ -260,29 +273,62 @@ export default {
             console.error('خطا در حذف زمان:', error);
           });
     },
+    sendAvailabilityDate(startIso, endIso) {
+      const data = {
+        start_time: startIso,
+        end_time: endIso
+      };
 
+      api.post(`/event/${this.$route.query.id}/availability/`, data)
+          .then(response => {
+            console.log('زمان در دسترس اضافه شد:', response);
+            this.fetchEventData();
+          })
+          .catch(error => {
+            console.error('خطا در افزودن زمان:', error);
+          });
+    },
 
-    //
-    // getUserCellClass(day, hour) {
-    //   const key = `${day} ${hour}`;
-    //   return this.attendee_availabilities.filter(temp =>
-    //       new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
-    //   ).length === 1 ? "selected" : "";
-    //
-    // },
+    removeAvailabilityDate(startIso, endIso) {
+      api.delete(`/event/${this.$route.query.id}/availability/`, {
+        data: {
+          start_time: startIso,
+          end_time: endIso
+        }
+      })
+          .then(response => {
+            console.log('زمان حذف شد:', response);
+            this.fetchEventData();
+          })
+          .catch(error => {
+            console.error('خطا در حذف زمان:', error);
+          });
+    },
+
 
     getUserCellClass(day, hour) {
       const key = `${day} ${hour}`;
-      return this.attendee_availabilities.some(temp =>
-          new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
-      ) ? "selected" : "";
+      return this.attendee_availabilities.some(temp => {
+        if(this.eventType === 0){
+          return new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
+        }
+        else if(this.eventType === 1){
+          return temp.start_time === hour && temp.day === day
+        }
+      }) ? "selected" : "";
     },
 
     getGroupCellClass(day, hour) {
       const key = `${day} ${hour}`;
-      console.log(new Date(this.convertTo24HourFormat(key)));
-      const totalUserPickThisTime = this.all_event_availabilities.filter(temp =>
-          new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
+      console.log(hour)
+
+      const totalUserPickThisTime = this.all_event_availabilities.filter(temp => {
+            if (this.eventType === 0) {
+              return new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
+            } else if (this.eventType === 1) {
+              return temp.start_time === hour && temp.day === day
+            }
+          }
       );
       const totallUserTimeSelectGroup = this.attendees_with_availability_count;
 
@@ -314,12 +360,17 @@ export default {
 
     showUserList(day, hour) {
       const key = `${day} ${hour}`;
+      console.log(hour)
       this.showUsers = true;
       const allUserByName = [...new Set(this.all_event_availabilities.map(user => user.attendee))]
-
-      const usersForHour = [...new Set(this.all_event_availabilities.filter(temp =>
-          new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
-      ).map(user => user.attendee))]
+      const usersForHour = [...new Set(this.all_event_availabilities.filter(temp => {
+          if(this.eventType === 0){
+            return new Date(temp.start_time).getTime() === new Date(this.convertTo24HourFormat(key)).getTime()
+          }
+       else if(this.eventType===1){
+            return temp.start_time === hour && temp.day === day
+          }
+    }).map(user => user.attendee))]
 
       if (usersForHour.length > 0) {
         this.availableUsers = usersForHour;
@@ -332,9 +383,6 @@ export default {
       }
     },
 
-    hideUserList() {
-      this.showUsers = false;
-    },
     async fetchEventData() {
       try {
         const response = await api.get(`/event/${this.$route.query.id}`);
@@ -343,26 +391,34 @@ export default {
         this.eventName = event.name;
         this.startTime = event.start_time;
         this.endTime = event.end_time;
-        this.selectedDays = event.dates.map(d => d.date);
         this.all_event_availabilities = response.data.all_event_availabilities;
         this.attendee_availabilities = response.data.attendee_availabilities;
         this.attendees_with_availability_count = response.data.attendees_with_availability_count;
+        this.eventType = event.event_type;
 
+        if (event.event_type === 0) {
+          this.selectedDays = event.dates.map(d => d.date);
+          console.log(this.selectedDays)
+        } else if (event.event_type === 1) {
+          this.selectedDays = event.days_of_week.map(d => d.day_label);
+          console.log(this.selectedDays)
+        }
         this.generateHours();
       } catch (error) {
         console.error("Error fetching event data:", error);
       }
     },
+
     generateHours() {
       const startHour = parseInt(this.startTime.split(":")[0]);
+      const startMinute = this.startTime.split(":")[1];
       const endHour = parseInt(this.endTime.split(":")[0]);
       this.hours = [];
 
       for (let hour = startHour; hour <= endHour; hour++) {
-        const formattedHour = hour > 12 ? `${hour - 12} PM` : `${hour} AM`;
-        this.hours.push(formattedHour);
+        this.hours.push(`${String(hour).padStart(2, '0')}:${startMinute}`);
       }
-    },
+    }
   },
   mounted() {
     this.fetchEventData();
