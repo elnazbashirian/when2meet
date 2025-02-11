@@ -135,7 +135,7 @@ export default {
     const eventId = this.$route.query.id; // دریافت ID از URL
     return {
       eventName: "",
-      eventLink: eventId ? `http://localhost:8080/event?id=${eventId}` : "", // تنظیم لینک
+      eventLink: eventId ? `https://www.hamahangsho.ir/event?id=${eventId}` : "", // تنظیم لینک
       timeZone: "Asia/Tehran",
       timeZones: [],
       userName: "",
