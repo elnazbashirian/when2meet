@@ -261,7 +261,7 @@ export default {
       } catch (error) {
         console.error('Failed to create event:', error);
         this.$toast.open({
-          message: 'خطا در ایجاد رویداد. لطفاً دوباره تلاش کنید.',
+          message: 'خطا در ایجاد رویداد. لطفاً دوباره تلاش کنید',
           type: "error",
           position: "bottom-left",
           duration: 5000,

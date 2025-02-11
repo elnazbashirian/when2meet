@@ -1,6 +1,6 @@
 <template>
   <div class="availability-page" dir="rtl">
-    <h1>{{ eventName }}</h1>
+    <h1>event name : {{ eventName }}</h1>
     <h3>
       برای دعوت افراد به این رویداد، این لینک را به اشتراک بگذارید:
       <a :href="eventLink" target="_blank">{{ eventLink }}</a>
@@ -26,7 +26,7 @@
         <p>نام/رمز عبور فقط برای این رویداد استفاده می‌شود</p>
       </div>
       <div class="availability-tables table group-table">
-        <h2>زمان های دسترسی گروه</h2>
+        <h2 class="center-table">زمان های دسترسی گروه</h2>
         <table>
           <thead>
           <tr>
@@ -55,7 +55,7 @@
 
 
         <div class="table group-table">
-          <h2>زمان های دسترسی گروه</h2>
+          <h2 class="center-table">زمان های دسترسی گروه</h2>
           <table>
             <thead>
             <tr>
@@ -77,7 +77,7 @@
         </div>
 
         <div class="table user-table">
-          <h2>زمان دسترسی کاربر {{ userName }}</h2>
+          <h2 class="center-table">زمان های دسترسی کاربر {{ userName }}</h2>
           <table>
             <thead>
             <tr>
@@ -101,12 +101,12 @@
 
     <!-- Available / Unavailable Users Table -->
     <div v-if="showUsers" class="user-list">
-      <h3>کاربران انتخاب‌شده</h3>
+      <h2 class="center-table">جدول کاربران</h2>
       <table>
         <thead>
         <tr>
-          <th>در دسترس</th>
-          <th>غیر در دسترس</th>
+          <th>کاربرانی که در دسترس هستند</th>
+          <th>کاربرانی که در دسترس نیستند</th>
         </tr>
         </thead>
         <tbody>
@@ -181,16 +181,29 @@ export default {
 
       try {
         const response = await api.post(`/event/${this.$route.query.id}/signin/`, data);
-
+        this.$toast.open({
+          message: 'شما با موفقیت به حساب کاربری خود وارد شدید',
+          type: "success",
+          position: "bottom-left",
+          duration: 5000,
+          dismissible: true,
+        });
         localStorage.setItem("accessToken", response.data.access);
         localStorage.setItem("refreshToken", response.data.refresh);
         localStorage.setItem("expireTime", response.data.access_expires);
         this.signedIn = true;
       } catch (error) {
         console.error("Error during sign in:", error);
-        alert("There was an error signing in. Please try again.");
+        this.$toast.open({
+          message: 'نام کاربری یا رمز عبور اشتباه است',
+          type: "error",
+          position: "bottom-left",
+          duration: 5000,
+          dismissible: true,
+        });
       }
     },
+
     convertTo24HourFormat(dateString) {
       const [date, time, period] = dateString.split(' ');
       let [hour, minute] = time.split(':');
@@ -238,9 +251,9 @@ export default {
         );
 
         if (isCurrentlySelected) {
-          this.removeAvailabilityDay(day, hour); // اگر انتخاب شده بود، حذف کن
+          this.removeAvailabilityDay(day, hour);
         } else {
-          this.sendAvailabilityDay(day, hour); // اگر انتخاب نشده بود، اضافه کن
+          this.sendAvailabilityDay(day, hour);
         }
       }
 
@@ -251,15 +264,29 @@ export default {
         start_time: hour
       })
           .then(response => {
-            console.log('زمان در دسترس اضافه شد:', response);
+            console.log(response)
+            this.$toast.open({
+              message: 'زمان انتخاب شده توسط کاربر اضافه شد',
+              type: "success",
+              position: "bottom-left",
+              duration: 5000,
+              dismissible: true,
+            });
             this.fetchEventData();
           })
           .catch(error => {
-            console.error('خطا در افزودن زمان:', error);
+            console.log(error)
+            this.$toast.open({
+              message: 'خطا در افزودن زمان! لطفاً دوباره تلاش کنید',
+              type: "error",
+              position: "bottom-left",
+              duration: 5000,
+              dismissible: true,
+            });
           });
     },
     removeAvailabilityDay(day, hour) {
-      api.delete(`/event/${this.$route.query.id}/availability/`, {
+      api.delete(`/event/${this.$route.query.id}/dayofweekavailability/`, {
         data: {
           day: day,
           start_time: hour
@@ -267,10 +294,24 @@ export default {
       })
           .then(response => {
             console.log('زمان حذف شد:', response);
+            this.$toast.open({
+              message: 'زمان انتخابی توسط کاربر حذف شد',
+              type: "success",
+              position: "bottom-left",
+              duration: 5000,
+              dismissible: true,
+            });
             this.fetchEventData(); // به‌روزرسانی داده‌ها
           })
           .catch(error => {
             console.error('خطا در حذف زمان:', error);
+            this.$toast.open({
+              message: 'خطا در حذف زمان! لطفاً دوباره تلاش کنید',
+              type: "error",
+              position: "bottom-left",
+              duration: 5000,
+              dismissible: true,
+            });
           });
     },
     sendAvailabilityDate(startIso, endIso) {
@@ -282,10 +323,24 @@ export default {
       api.post(`/event/${this.$route.query.id}/availability/`, data)
           .then(response => {
             console.log('زمان در دسترس اضافه شد:', response);
+            this.$toast.open({
+              message: 'زمان انتخاب شده توسط کاربر اضافه شد',
+              type: "success",
+              position: "bottom-left",
+              duration: 5000,
+              dismissible: true,
+            });
             this.fetchEventData();
           })
           .catch(error => {
             console.error('خطا در افزودن زمان:', error);
+            this.$toast.open({
+              message: 'خطا در افزودن زمان! لطفاً دوباره تلاش کنید',
+              type: "error",
+              position: "bottom-left",
+              duration: 5000,
+              dismissible: true,
+            });
           });
     },
 
@@ -298,10 +353,24 @@ export default {
       })
           .then(response => {
             console.log('زمان حذف شد:', response);
+            this.$toast.open({
+              message: 'زمان انتخابی توسط کاربر حذف شد',
+              type: "success",
+              position: "bottom-left",
+              duration: 5000,
+              dismissible: true,
+            });
             this.fetchEventData();
           })
           .catch(error => {
             console.error('خطا در حذف زمان:', error);
+            this.$toast.open({
+              message: 'خطا در حذف زمان! لطفاً دوباره تلاش کنید',
+              type: "error",
+              position: "bottom-left",
+              duration: 5000,
+              dismissible: true,
+            });
           });
     },
 
@@ -334,15 +403,15 @@ export default {
 
       if (totallUserTimeSelectGroup === 1) {
         if (totalUserPickThisTime.length === 1)
-          return "green"; // فقط یک کاربر انتخاب کرده است (سبز)
+          return "purple-dark";
       } else if (totallUserTimeSelectGroup === 2) {
 
-        if (totalUserPickThisTime.length === 1) return "yellow"; // یکی انتخاب کرده است (زرد)
-        else if (totalUserPickThisTime.length === 2) return "green";
+        if (totalUserPickThisTime.length === 1) return "purple-light";
+        else if (totalUserPickThisTime.length === 2) return "purple-dark";
       } else if (totallUserTimeSelectGroup >= 3) {
-        if (totalUserPickThisTime.length === totallUserTimeSelectGroup) return "green"; // همه انتخاب کرده‌اند (سبز)
-        if (totalUserPickThisTime.length >= 2 && totalUserPickThisTime.length <= totallUserTimeSelectGroup - 1) return "red"; // دو نفر انتخاب کرده‌اند و یک نفر نه (قرمز)
-        if (totalUserPickThisTime.length === 1) return "yellow"; // فقط یک نفر انتخاب کرده است (زرد)
+        if (totalUserPickThisTime.length === totallUserTimeSelectGroup) return "purple-dark";
+        if (totalUserPickThisTime.length >= 2 && totalUserPickThisTime.length <= totallUserTimeSelectGroup - 1) return "purple-medium";
+        if (totalUserPickThisTime.length === 1) return "purple-light";
       }
       return "";
     },
@@ -449,7 +518,7 @@ h1 {
   font-size: 36px;
   font-weight: bold;
   margin-bottom: 20px;
-  text-align: left;
+  text-align: center;
 }
 
 h3 {
@@ -584,20 +653,20 @@ th {
 }
 
 .hour-cell.selected {
-  background: #6c63ff;
+  background: #6a0dad;
   color: white;
 }
 
-.hour-cell.green {
-  background: #6c63ff;
+.hour-cell.purple-dark {
+  background: #6a0dad;
   color: white;
 }
 
-.hour-cell.yellow {
+.hour-cell.purple-light {
   background: rgba(157, 155, 225, 0.82);
 }
 
-.hour-cell.red {
+.hour-cell.purple-medium {
   background: rgba(104, 102, 166, 0.82);
   color: white;
 }
@@ -624,6 +693,8 @@ th {
   background-color: black;
   color: white;
 }
-
+.center-table{
+  text-align: center;
+}
 </style>
 

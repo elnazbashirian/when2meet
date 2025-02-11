@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = 'http://192.168.100.110:8000';
+// const API_BASE_URL = 'http://192.168.100.110:8000';
+const API_BASE_URL = 'http://172.20.10.3:8000';
 
 const api = axios.create({
     API_BASE_URL,
@@ -9,7 +10,7 @@ const api = axios.create({
         "Content-Type": "application/json",
     },
 });
-// اضافه کردن توکن به هدر هر درخواست
+
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('accessToken');
@@ -28,7 +29,7 @@ api.interceptors.request.use(
     }
 );
 
-// متد برای ریفرش کردن توکن
+
 async function refreshToken() {
     const refreshToken = localStorage.getItem('refreshToken');
 
