@@ -6,7 +6,6 @@
       <input type="text" placeholder="نام رویداد جدید" v-model="eventName" />
     </div>
 
-    <!-- What dates might work? -->
     <div class="date-selection">
       <h2>کدام تاریخ‌ها برای شما مناسب است؟</h2>
       <h3>برای انتخاب، روی تاریخ مد نظر کلیک کنید</h3>
