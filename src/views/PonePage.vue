@@ -1,8 +1,6 @@
 <template>
   <div class="main-container" dir="rtl">
     <h1>برنامه‌ریزی برای رویداد جدید</h1>
-
-    <!-- New Event Name -->
     <div class="event-name">
       <h2>یک نام برای رویداد خود انتخاب کنید</h2>
       <input type="text" placeholder="نام رویداد جدید" v-model="eventName" />
