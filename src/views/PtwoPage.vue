@@ -101,7 +101,7 @@
 
     <!-- Available / Unavailable Users Table -->
     <div v-if="showUsers" class="user-list">
-      <h2 class="center-table">جدول کاربران</h2>
+      <h2 class="center-table4">جدول کاربران</h2>
       <table>
         <thead>
         <tr>
