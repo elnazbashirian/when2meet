@@ -1,30 +1,28 @@
 <template>
-  <div class="main-container">
-    <h1>Plan a New Event</h1>
-
-    <!-- New Event Name -->
+  <div class="main-container" dir="rtl">
+    <h1>برنامه‌ریزی برای رویداد جدید</h1>
     <div class="event-name">
-      <input type="text" placeholder="New Event Name" v-model="eventName" />
+      <h2>یک نام برای رویداد خود انتخاب کنید</h2>
+      <input type="text" placeholder="نام رویداد جدید" v-model="eventName" />
     </div>
 
-    <!-- What dates might work? -->
     <div class="date-selection">
-      <h3>What dates might work?</h3>
-      <p>Click and drag dates to choose possibilities.</p>
+      <h2>کدام تاریخ‌ها برای شما مناسب است؟</h2>
+      <h3>برای انتخاب، روی تاریخ مد نظر کلیک کنید</h3>
       <label>
-        Survey using:
+        <h3>انتخاب تاریخ با استفاده از:</h3>
         <select v-model="surveyType">
-          <option value="specific">Specific Dates</option>
-          <option value="days">Days of the Week</option>
+          <option value="specific">تاریخ‌های خاص</option>
+          <option value="days">روزهای هفته</option>
         </select>
       </label>
 
       <!-- Calendar for Specific Dates -->
       <div v-if="surveyType === 'specific'" class="calendar-container">
         <div class="calendar-header">
-          <button @click="prevMonth">&#8592;</button>
-          <span>{{ monthNames[currentMonth] }} {{ currentYear }}</span>
           <button @click="nextMonth">&#8594;</button>
+          <span>{{ monthNames[currentMonth] }} {{ currentYear }}</span>
+          <button @click="prevMonth">&#8592;</button>
         </div>
         <div class="calendar">
           <div class="day-name" v-for="day in dayNames" :key="day">{{ day }}</div>
@@ -54,134 +52,120 @@
       </div>
     </div>
 
-    <!-- What times might work? -->
-    <div class="time-selection">
-      <h3>What times might work?</h3>
-      <label>
-        No earlier than:
-        <select v-model="timeStart">
-          <option v-for="time in timeOptions" :key="time" :value="time">
-            {{ time }}
-          </option>
-        </select>
-      </label>
-      <label>
-        No later than:
-        <select v-model="timeEnd">
-          <option v-for="time in timeOptions" :key="time" :value="time">
-            {{ time }}
-          </option>
-        </select>
-      </label>
+    <!-- Time and Timezone Selection -->
+    <div class="time-zone-selection">
+      <h2>چه ساعاتی برای شما مناسب است؟</h2>
+      <div class="time-zone-box">
+        <label>
+          <h3>زودتر از این ساعت نباشد:</h3>
+          <select v-model="timeStart">
+            <option v-for="time in noEarlierThan" :key="time" :value="time">
+              {{ time }}
+            </option>
+          </select>
+        </label>
+        <label>
+          <h3>دیرتر از این ساعت نباشد:</h3>
+          <select v-model="timeEnd">
+            <option v-for="time in noLaterThan" :key="time" :value="time">
+              {{ time }}
+            </option>
+          </select>
+        </label>
 
-      <label>
-        Time Zone:
-        <select v-model="timeZone">
-          <option v-for="zone in timeZones" :key="zone" :value="zone">
-            {{ zone }}
-          </option>
-        </select>
-      </label>
+        <label>
+          <h3>منطقه زمانی:</h3>
+          <select v-model="timeZone">
+            <option v-for="zone in timeZones" :key="zone" :value="zone">
+              {{ zone }}
+            </option>
+          </select>
+        </label>
+      </div>
     </div>
 
     <!-- Ready Button -->
     <div class="create-event">
-      <button @click="goToEventPage">Create Event</button>
+      <button @click="createEvent">ایجاد رویداد</button>
     </div>
   </div>
 </template>
 
 <script>
+import api from '@/services/api'; // Assuming api is set up for axios
+import moment from "jalali-moment";
 export default {
   data() {
-    const today = new Date();
+    const today = moment().locale("fa");
     return {
       eventName: "",
       surveyType: "specific", // Default to Specific Dates
-      currentMonth: today.getMonth(),
-      currentYear: today.getFullYear(),
-      daysInMonth: this.getDaysInMonth(today.getFullYear(), today.getMonth()),
-      dayNames: ["S", "M", "T", "W", "T", "F", "S"],
+      currentMonth: today.jMonth(),
+      currentYear: today.jYear(),
+      daysInMonth: this.getDaysInMonth(today.jYear(), today.jMonth()),
+      dayNames: ["شنبه", "یکشنبه", "دوشنبه", "سه شنبه", "چهارشنبه", "پنجشنبه", "جمعه"],
       monthNames: [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
+        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
       ],
       daysOfWeek: [
-        { name: "Sunday", selected: false },
-        { name: "Monday", selected: false },
-        { name: "Tuesday", selected: false },
-        { name: "Wednesday", selected: false },
-        { name: "Thursday", selected: false },
-        { name: "Friday", selected: false },
-        { name: "Saturday", selected: false },
+        { name: "شنبه", selected: false },
+        { name: "یکشنبه", selected: false },
+        { name: "دوشنبه", selected: false },
+        { name: "سه‌شنبه", selected: false },
+        { name: "چهارشنبه", selected: false },
+        { name: "پنج‌شنبه", selected: false },
+        { name: "جمعه", selected: false }
       ],
-      timeStart: "9:00 AM",
-      timeEnd: "5:00 PM",
-      timeOptions: [
-        "12:00 AM",
-        "1:00 AM",
-        "2:00 AM",
-        "3:00 AM",
-        "4:00 AM",
-        "5:00 AM",
-        "6:00 AM",
-        "7:00 AM",
-        "8:00 AM",
-        "9:00 AM",
-        "10:00 AM",
-        "11:00 AM",
-        "12:00 PM",
-        "1:00 PM",
-        "2:00 PM",
-        "3:00 PM",
-        "4:00 PM",
-        "5:00 PM",
-        "6:00 PM",
-        "7:00 PM",
-        "8:00 PM",
-        "9:00 PM",
-        "10:00 PM",
-        "11:00 PM",
-      ],
+      timeStart: "12:00 AM",
+      timeEnd: "11:00 PM",
+      noEarlierThan: [],
+      noLaterThan: [],
       timeZone: "Asia/Tehran",
-      timeZones: ["Asia/Tehran", "America/New_York", "Europe/London", "UTC"],
+      timeZones: [],
+      dateOptions: []
     };
   },
+  mounted() {
+    this.fetchEventOptions();
+  },
   methods: {
+    async fetchEventOptions() {
+      try {
+        const response = await api.get("/event/options");
+        this.dateOptions = response.data.date_options;
+        this.noEarlierThan = response.data.time_options.no_earlier_than;
+        this.noLaterThan = response.data.time_options.no_later_than;
+        this.timeZones = response.data.time_zones;
+      } catch (error) {
+        console.error("API Request Failed:", error);
+      }
+    },
     getDaysInMonth(year, month) {
-      const date = new Date(year, month, 1);
       const days = [];
-      while (date.getMonth() === month) {
-        days.push({
-          day: date.getDate(),
-          currentMonth: true,
-          selected: false,
-        });
-        date.setDate(date.getDate() + 1);
+      const firstDayOfMonth = moment(`${year}/${month + 1}/1`, "jYYYY/jM/jD").jDay(); // اصلاح شده
+      const daysCount = moment.jDaysInMonth(year, month);
+
+      for (let i = 0; i < firstDayOfMonth; i++) {
+        days.push({ day: "", currentMonth: false });
       }
 
-      // Add padding for the first week
-      const firstDay = new Date(year, month, 1).getDay();
-      for (let i = 0; i < firstDay; i++) {
-        days.unshift({ day: "", currentMonth: false, selected: false });
+      for (let i = 1; i <= daysCount; i++) {
+        days.push({
+          day: i,
+          currentMonth: true,
+          selected: false
+        });
       }
 
       return days;
     },
+
+
+
     toggleDateSelection(date) {
       if (date.currentMonth) {
         date.selected = !date.selected;
-        console.log("Day selected:", date.day, "Selected status:", date.selected);
       }
     },
     prevMonth() {
@@ -204,37 +188,83 @@ export default {
     },
     toggleDayOfWeekSelection(day) {
       day.selected = !day.selected;
-      console.log(day.name, day.selected);
     },
-    goToEventPage() {
-      // بررسی روزهای انتخاب‌شده از تقویم
-      const selectedCalendarDays = this.daysInMonth.filter(date => date.selected);
-      // بررسی روزهای انتخاب‌شده از روزهای هفته
-      const selectedWeekDays = this.daysOfWeek.filter(day => day.selected);
+    convertTo24HourFormat(time) {
+      let hour = parseInt(time.split(":")[0]);
+      let minute = time.split(":")[1].slice(0, 2);
+      let period = time.slice(-2);
 
-      // ترکیب روزهای انتخاب‌شده
-      const selectedDays = [
-        ...selectedCalendarDays.map(day => day.day), // روزهای تقویم
-        ...selectedWeekDays.map(day => day.name), // روزهای هفته
-      ];
+      if (period === "AM" && hour === 12) {
+        hour = 0;
+      } else if (period === "PM" && hour !== 12) {
+        hour += 12;
+      }
 
-      // نمایش جزئیات رویداد
+      return `${hour < 10 ? "0" + hour : hour}:${minute}:00`;
+    },
+
+    async createEvent() {
+      const selectedDates = this.daysInMonth
+          .filter(date => date.selected)
+          .map(day => ({
+            date: `1403-${(this.currentMonth + 1).toString().padStart(2, '0')}-${day.day.toString().padStart(2, '0')}`
+          }));
+
+      const selectedDaysOfWeek = this.daysOfWeek
+          .filter(day => day.selected)
+          .map(day => ({ day: day.name }));
+
       const eventDetails = {
-        eventName: this.eventName,
-        selectedDays: selectedDays, // ذخیره همه روزهای انتخاب‌شده
-        timeStart: this.timeStart,
-        timeEnd: this.timeEnd,
+        name: this.eventName,
+        timezone: this.timeZone,
+        start_time: this.convertTo24HourFormat(this.timeStart),
+        end_time: this.convertTo24HourFormat(this.timeEnd),
+        event_type: this.surveyType === "days" ? "Days of Week" : "Specific Dates",
       };
-      console.log("Event Details:", eventDetails);
 
-      // اگر هیچ روزی انتخاب نشده باشد، نمایش پیغام خطا
-      if (selectedDays.length === 0) {
-        alert('Please select at least one day.');
+      if (this.surveyType === "specific") {
+        eventDetails.dates = selectedDates;
+      } else if (this.surveyType === "days") {
+        eventDetails.days_of_week = selectedDaysOfWeek;
+      }
+
+      if ((!selectedDates.length && this.surveyType === "specific") ||
+          (!selectedDaysOfWeek.length && this.surveyType === "days") ||
+          !this.eventName) {
+        this.$toast.open({
+          message: 'لطفاً یک نام برای رویداد وارد کنید و حداقل یک روز یا تاریخ را انتخاب کنید.',
+          type: "error",
+          position: "bottom-left",
+          duration: 5000,
+          dismissible: true,
+        });
         return;
       }
 
-      // ارسال داده‌ها به صفحه رویداد
-      this.$router.push({ path: "/event", query: eventDetails });
+      try {
+        const response = await api.post('/event/create/', eventDetails);
+        console.log('Event Created:', response.data);
+        this.$toast.open({
+          message: 'رویدادی جدید با موفقیت ایجاد شد',
+          type: "success",
+          position: "bottom-left",
+          duration: 5000,
+          dismissible: true,
+        });
+        const eventLink = response.data.event_link;
+        const eventUUID = eventLink.split('/').pop();
+
+        this.$router.push({ path: '/event', query: { id: eventUUID } });
+      } catch (error) {
+        console.error('Failed to create event:', error);
+        this.$toast.open({
+          message: 'خطا در ایجاد رویداد. لطفاً دوباره تلاش کنید',
+          type: "error",
+          position: "bottom-left",
+          duration: 5000,
+          dismissible: true,
+        });
+      }
     }
 
 
@@ -243,84 +273,228 @@ export default {
 };
 </script>
 
+
 <style scoped>
+/* به body و html بدون فاصله اعمال کنید */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+/* پس‌زمینه به کل صفحه اعمال می‌شود */
 .main-container {
-  padding: 20px;
-  font-family: Arial, sans-serif;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #a8c0ff, #d3d3d3, #8e44ad); /* Light gray background */
+  color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 30px;
+  box-sizing: border-box;
+  min-height: 100vh; /* اطمینان از اینکه کل صفحه پر می‌شود */
 }
-.event-name input {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 20px;
-  font-size: 16px;
-}
-.date-selection,
-.time-selection {
-  margin-top: 20px;
-}
-label {
-  display: block;
-  margin-bottom: 10px;
+
+h1 {
+  font-size: 36px;
   font-weight: bold;
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.event-name input {
+  width: 300px;
+  padding: 15px;
+  margin-bottom: 25px;
+  font-size: 18px;
+  border: none;
+  border-radius: 8px;
+  border: #5e54e0 solid 3px;
+  background-color: #fff;
+  color: #333;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+select {
+  width: 97.5%;
+  padding: 12px;
+  margin: 10px 0;
+  font-size: 16px;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+button {
+  background: #6c63ff;
+  color: #fff;
+  padding: 15px 30px;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 50px;
+  margin-top: 20px;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #5e54e0;
+}
+.date-selection{
+  margin: auto;
+  width: 70%;
 }
 .calendar-container {
   text-align: center;
+  background: #fff;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+  width: 95%;
+  margin-bottom: 30px;
 }
+
 .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
+
 .calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
-}
-.day-name {
-  font-weight: bold;
-  text-align: center;
-}
-.day {
-  background: #ddd;
-  padding: 10px;
-  text-align: center;
-  cursor: pointer;
-  border-radius: 5px;
-}
-.day.selected {
-  background: #ff6961;
-  color: #fff;
-}
-.days-of-week {
-  display: flex;
   gap: 10px;
 }
-.day-option {
-  background: #ddd;
-  padding: 10px 15px;
-  text-align: center;
-  cursor: pointer;
-  border-radius: 5px;
+
+.day-name {
+  font-weight: bold;
 }
-.day-option.selected {
-  background: #77dd77;
+
+.day {
+  padding: 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  background-color: #f4f4f4;
+  transition: background-color 0.3s;
+}
+
+.day:hover {
+  background-color: #d9d9d9;
+}
+
+.day.selected {
+  background-color: #6c63ff;
   color: #fff;
 }
-.create-event {
-  margin-top: 30px;
+
+.day.disabled {
+  cursor: not-allowed;
 }
-button {
-  background: #4caf50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
+
+.days-of-week {
+  display: flex;
+  justify-content: space-evenly;
+  margin-top: 20px;
+}
+
+.day-option {
+  padding: 15px;
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: 8px;
+  background-color: white;
+  border: #6c63ff solid 3px ;
+  color: black;
+  transition: background-color 0.3s;
 }
-button:hover {
-  background: #45a049;
+
+.day-option.selected {
+  background-color: #6c63ff;
+  color: white;
+}
+
+.time-zone-box {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.event-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 400px; /* عرض حداکثر برای جلوگیری از گسترش زیاد */
+  margin: 0 auto 40px auto;
+  text-align: center;
+}
+
+.event-name h2 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.event-name input {
+  width: 100%;
+  padding: 15px;
+  font-size: 18px;
+  border-radius: 30px;
+  border: 3px solid #5e54e0;
+  background-color: #fff;
+  color: #333;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+  outline: none;
+  transition: all 0.3s ease-in-out;
+  margin-bottom: 20px;
+}
+
+/* تغییر استایل هنگام فوکوس */
+.event-name input:focus {
+  border-color: #6c63ff;
+  transform: scale(1.05);
+  box-shadow: 0px 4px 20px rgba(108, 99, 255, 0.3);
+}
+
+/* افکت هنگام hover */
+.event-name input:hover {
+  border-color: #6c63ff;
+}
+.create-event{
+  margin: auto;
+}
+@media (max-width: 768px) {
+  .main-container {
+    padding: 25px;
+    max-width: 100%;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: bold;
+    /*margin-bottom: 30px;*/
+    margin: 30px auto;
+  }
+  .calendar {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .time-zone-box{
+    flex-direction: column;
+  }
+  h2,h3{
+    width: 127%;
+  }
+  .date-selection{
+    margin: 0;
+    width: 97%;
+  }
+  select{
+    width: 106.5%;
+  }
 }
 </style>
-

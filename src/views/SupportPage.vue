@@ -160,4 +160,9 @@ p {
 .purple-light {
   background-color: #e0c3fc;
 }
+@media (max-width: 768px) {
+  .legend{
+    flex-direction: column;
+  }
+}
 </style>
