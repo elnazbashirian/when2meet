@@ -183,6 +183,7 @@ export default {
 
       try {
         const response = await api.post(`/event/${this.$route.query.id}/signin/`, data);
+        this.fetchEventData();
         this.$toast.open({
           message: 'شما با موفقیت به حساب کاربری خود وارد شدید',
           type: "success",
