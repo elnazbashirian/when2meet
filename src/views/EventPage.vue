@@ -1,6 +1,6 @@
 <template>
   <div class="availability-page" dir="rtl">
-    <h1>event name : {{ eventName }}</h1>
+    <h1>نام رویداد: {{eventName}}</h1>
     <h3>
       برای دعوت افراد به این رویداد، این لینک را به اشتراک بگذارید:
       <a :href="eventLink" target="_blank">{{ eventLink }}</a>
@@ -524,7 +524,7 @@ html, body {
 }
 
 h1 {
-  font-size: 36px;
+  font-size: 30px;
   font-weight: bold;
   margin-bottom: 20px;
   text-align: center;
@@ -703,6 +703,10 @@ th {
 }
 .center-table{
   text-align: center;
+}
+.h1{
+  text-align: center;
+  font-size: 2em;
 }
 @media (max-width: 768px) {
   .sign-in-form{
